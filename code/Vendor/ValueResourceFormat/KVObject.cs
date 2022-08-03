@@ -58,16 +58,45 @@ namespace DeggTools
 		}
 
 		//Add a property to the structure
+		public virtual void AddProperty(KVObject[] arr )
+		{
+			for(var i = 0; i <arr.Length; i++ )
+			{
+				AddProperty( i.ToString(), arr[i] );
+			}
+
+		}
+
+		//Add a property to the structure
 		public virtual void AddProperty( string name, string value )
 		{
 			var kvValue = new KVValue( KVType.STRING, value );
 			AddProperty(name, kvValue );
 		}
 
+		//Add a property to the structure
+		public virtual void AddProperty( string name, int value )
+		{
+			var kvValue = new KVValue( KVType.INTEGER, value );
+			AddProperty( name, kvValue );
+		}
+
+		//Add a property to the structure
+		public virtual void AddProperty( string name, float value )
+		{
+			var kvValue = new KVValue( KVType.DOUBLE, value );
+			AddProperty( name, kvValue );
+		}
+
 		public virtual void AddProperty( string name, KVObject value )
 		{
 			var kvValue = new KVValue( KVType.OBJECT, value );
 			AddProperty( name, kvValue );
+		}
+		public virtual void AddProperty( KVObject value )
+		{
+			var kvValue = new KVValue( KVType.OBJECT, value );
+			AddProperty( value.Key, kvValue );
 		}
 
 		public virtual void AddResource( string name, string value )
@@ -181,6 +210,7 @@ namespace DeggTools
 						throw new InvalidOperationException( "Trying to print unknown flag" );
 				}
 			}
+			Log.Info( type );
 
 			switch ( type )
 			{
@@ -208,7 +238,7 @@ namespace DeggTools
 					writer.Write( ((double)value).ToString( "#0.000000", CultureInfo.InvariantCulture ) );
 					break;
 				case KVType.INTEGER:
-					writer.Write( (long)value );
+					writer.Write( (int)value );
 					break;
 				case KVType.NULL:
 					writer.Write( "null" );

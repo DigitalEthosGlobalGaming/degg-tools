@@ -1,0 +1,5 @@
+C:\Users\jonest\Documents\S&box Projects\deggtools\code\obj\Debug\deggtools.csproj.AssemblyReference.cache
+C:\Users\jonest\Documents\S&box Projects\deggtools\code\obj\Debug\deggtools.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jonest\Documents\S&box Projects\deggtools\code\obj\Debug\deggtools.AssemblyInfoInputs.cache
+C:\Users\jonest\Documents\S&box Projects\deggtools\code\obj\Debug\deggtools.AssemblyInfo.cs
+C:\Users\jonest\Documents\S&box Projects\deggtools\code\obj\Debug\deggtools.csproj.CoreCompileInputs.cache
