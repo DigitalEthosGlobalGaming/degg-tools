@@ -14,6 +14,7 @@ namespace DeggTools
 		INTEGER,
 		FLAGGED_STRING, //TODO: Remove!
 		DOUBLE = 5,
+		FLOAT,
 		STRING,
 		ARRAY = 8,
 		OBJECT
@@ -26,6 +27,7 @@ namespace DeggTools
 		public Dictionary<string, KVValue> Properties { get; private set; }
 		private bool IsArray;
 		public int Count { get; private set; }
+		public const int MaxDepth = 10;
 
 		public KVObject( string name )
 		{
@@ -74,6 +76,15 @@ namespace DeggTools
 			AddProperty(name, kvValue );
 		}
 
+		public virtual void AddProperty( string name, Vector3 value )
+		{
+			var kvObject = new KVObject( "vector3", true );
+			kvObject.AddProperty("x", value.x );
+			kvObject.AddProperty( "x", value.y );
+			kvObject.AddProperty( "x", value.z );
+			AddProperty( name, kvObject );
+		}
+
 		//Add a property to the structure
 		public virtual void AddProperty( string name, int value )
 		{
@@ -84,7 +95,7 @@ namespace DeggTools
 		//Add a property to the structure
 		public virtual void AddProperty( string name, float value )
 		{
-			var kvValue = new KVValue( KVType.DOUBLE, value );
+			var kvValue = new KVValue( KVType.FLOAT, value );
 			AddProperty( name, kvValue );
 		}
 
@@ -92,6 +103,13 @@ namespace DeggTools
 		{
 			var kvValue = new KVValue( KVType.OBJECT, value );
 			AddProperty( name, kvValue );
+		}
+
+		public virtual KVObject CreateChild(string name, bool arr = false)
+		{
+			var kvObject = new KVObject( name, arr );
+			this.AddProperty( name, kvObject );
+			return kvObject;
 		}
 		public virtual void AddProperty( KVObject value )
 		{
@@ -105,20 +123,38 @@ namespace DeggTools
 			AddProperty( name, kvValue );
 		}
 
+		public void Serialize( IndentedTextWriter writer, int count )
+		{
+			count = count + 1;
+			if (count > MaxDepth )
+			{
+				throw new Exception( "Error, too deep" );
+			}
+
+			if ( IsArray )
+			{
+				SerializeArray( writer, count );
+			}
+			else
+			{
+				SerializeObject( writer, count );
+			}
+		}
+
 		public void Serialize( IndentedTextWriter writer )
 		{
 			if ( IsArray )
 			{
-				SerializeArray( writer );
+				SerializeArray( writer, 1 );
 			}
 			else
 			{
-				SerializeObject( writer );
+				SerializeObject( writer, 1 );
 			}
 		}
 
 		//Serialize the contents of the KV object
-		private void SerializeObject( IndentedTextWriter writer )
+		private void SerializeObject( IndentedTextWriter writer, int count )
 		{
 			//Don't enter the top-most object
 			if ( Key != null )
@@ -134,7 +170,7 @@ namespace DeggTools
 				writer.Write( pair.Key );
 				writer.Write( " = " );
 
-				PrintValue( writer, pair.Value );
+				PrintValue( writer, pair.Value, count );
 
 				writer.WriteLine();
 			}
@@ -143,7 +179,7 @@ namespace DeggTools
 			writer.Write( "}" );
 		}
 
-		private void SerializeArray( IndentedTextWriter writer )
+		private void SerializeArray( IndentedTextWriter writer, int count )
 		{
 			//Need to preserve the order
 			writer.WriteLine();
@@ -151,7 +187,7 @@ namespace DeggTools
 			writer.Indent++;
 			for ( var i = 0; i < Count; i++ )
 			{
-				PrintValue( writer, Properties[i.ToString()] );
+				PrintValue( writer, Properties[i.ToString()], count );
 
 				writer.WriteLine( "," );
 			}
@@ -191,7 +227,7 @@ namespace DeggTools
 		}
 
 		//Print a value in the correct representation
-		private void PrintValue( IndentedTextWriter writer, KVValue kvValue )
+		private void PrintValue( IndentedTextWriter writer, KVValue kvValue, int count )
 		{
 			KVType type = kvValue.Type;
 			object value = kvValue.Value;
@@ -210,13 +246,11 @@ namespace DeggTools
 						throw new InvalidOperationException( "Trying to print unknown flag" );
 				}
 			}
-			Log.Info( type );
-
 			switch ( type )
 			{
 				case KVType.OBJECT:
 				case KVType.ARRAY:
-					((KVObject)value).Serialize( writer );
+					((KVObject)value).Serialize( writer, count );
 					break;
 				case KVType.FLAGGED_STRING:
 					writer.Write( (string)value );
@@ -236,6 +270,9 @@ namespace DeggTools
 					break;
 				case KVType.DOUBLE:
 					writer.Write( ((double)value).ToString( "#0.000000", CultureInfo.InvariantCulture ) );
+					break;
+				case KVType.FLOAT:
+					writer.Write( ((float)value).ToString( "#0.000000", CultureInfo.InvariantCulture ) );
 					break;
 				case KVType.INTEGER:
 					writer.Write( (int)value );

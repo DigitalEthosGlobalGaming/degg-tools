@@ -5,6 +5,11 @@ using Tools;
 
 namespace DeggTools
 {
+	public enum SpriteShapes {
+		Square,
+		Circle
+		
+	}
 	public struct Sprite
 	{		
 		public string Code { get; set; }
@@ -13,21 +18,15 @@ namespace DeggTools
 		public string Image { get; set; }
 		public int Width { get; set; }
 		public int Height { get; set; }
+		public SpriteShapes Shape { get; set; }
 
-		public void SetHeight(int a)
-		{
-			Height = a;
-		}
-
-		public void SetWidth( int a )
-		{
-			Height = a;
-		}
 	}
 
 	[GameResource( "Spritesheet", "sprite", "Describes a Sprite" )]
 	public partial class SpriteSheetResource : GameResource
 	{
+		[ResourceType( "vmdl" )]
+		public string Model { get; set; }
 		[ResourceType( "png" )]
 		public List<Sprite> Sprites { get; set; }
 	}

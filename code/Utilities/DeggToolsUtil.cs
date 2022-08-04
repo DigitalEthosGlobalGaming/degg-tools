@@ -4,7 +4,7 @@ using Tools;
 
 namespace DeggTools
 {
-	public static class DeggToolUtils
+	public static partial class DeggToolUtils
 	{
 		public static List<Inspector> GetInspectors()
 		{

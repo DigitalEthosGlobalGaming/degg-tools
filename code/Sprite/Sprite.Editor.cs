@@ -1,4 +1,5 @@
 ﻿using Sandbox;
+using Sandbox.Internal;
 using System.Collections.Generic;
 using System.Linq;
 using Tools;
@@ -10,17 +11,46 @@ namespace DeggTools
 		protected override void PostReload()
 		{
 			base.PostReload();
-			Create( );
+			Process( );
 		}
 
-		public void Create()
+		public string GetGeneratedFolderPath()
+		{			
+			return GetRelatedAsset().AbsolutePath.Replace( ".sprite", "_generated/" );
+		}
+		public string GetRelativeGeneratedFolderPath()
 		{
-			foreach(var sprite in Sprites)
+			return GetRelatedAsset().RelativePath.Replace( ".sprite", "_generated/" );
+		}
+
+		public Asset GetRelatedAsset()
+		{
+			return DeggToolUtils.FindAsset( this );
+		}
+
+		public void Process()
+		{
+			var newSprites = new List<Sprite>();
+			var spritesArray = Sprites.ToArray();
+			for ( int i = 0; i < spritesArray.Count(); i++ )
 			{
-				var size = GetPngSize( sprite.Image );
-				sprite.SetHeight( (int)size.y );
-				sprite.SetWidth( (int)size.x );
+				var sprite = spritesArray[i];
+				if ( sprite.Image != "" )
+				{
+					Asset imageAsset = DeggToolUtils.FindAsset(sprite.Image);
+
+					if ( imageAsset != null )
+					{
+						var size = GetPngSize( imageAsset.AbsolutePath );
+						sprite.Width = ( (int)size.y );
+						sprite.Height = ( (int)size.x );
+					}
+				}
+				newSprites.Add( sprite );
 			}
+			Sprites = newSprites;
+
+			this.Model = this.ResourcePath + ".vmdl";
 		}
 
 		public Vector2 GetPngSize(string path)
@@ -29,7 +59,6 @@ namespace DeggTools
 			if ( path != null )
 			{
 				var png = Png.Open( path );
-
 				size.x = png.Width;
 				size.y = png.Height;
 			}
@@ -46,18 +75,11 @@ namespace DeggTools
 			{
 				var asset = e.SelectedList.First();
 				var extension = asset.AssetType.FileExtension;
-				Log.Info( extension );
-				if ( asset.AssetType == AssetType.ImageFile )
-				{
-					if ( asset.AbsolutePath.EndsWith( ".png" ) )
-					{
-						e.Menu.AddSeparator();
-						e.Menu.AddOption( "Create Sprite", "collections", action: () => CreateMaterial( asset ) );
-					}
-				} else if ( extension == "sprite" )
+
+				if ( extension == "sprite" )
 				{
 					e.Menu.AddSeparator();
-					e.Menu.AddOption( "Build Sprite", "collections", action: () => CreateMaterial( asset ) );
+					e.Menu.AddOption( "Build Sprite", "collections", action: () => BuildSprite( asset ) );
 				}
 			}
 		}
@@ -88,63 +110,36 @@ namespace DeggTools
 
 			var file = new KV3File( root );
 			return file;
-
 		}
 
-		public void BuildSprite()
+		public static void BuildSprite( SpriteSheetResource sprite )
 		{
-			var data = this.ToKV3File();
-			System.IO.File.WriteAllText( this.ResourcePath, data.ToString() );
-			Log.Info( this.ResourcePath );
 
-			return;
-			var spriteAsset = AssetSystem.FindByPath( this.ResourcePath );
-
-			MainAssetBrowser.Instance?.UpdateAssetList();
-			MainAssetBrowser.Instance?.FocusOnAsset( spriteAsset );
-			Utility.InspectorObject = spriteAsset;
-
-			spriteAsset.Compile( true );
+			var asset = DeggToolUtils.FindAsset( sprite );
+			BuildSprite( sprite, asset );
 		}
 
-		public static void CreateMaterial( Asset asset )
+		public static void BuildSprite( SpriteSheetResource sprite, Asset asset )
 		{
+			if ( sprite != null && asset != null )
+			{
+				sprite.Validate();
+				sprite.Process();
+				sprite.CreateModel();
+				asset.SaveToDisk( sprite );
+				asset.SaveToMemory( sprite );
+				asset.Compile( false );
 
-			var targetPath = asset.RelativePath;
-			var basePath = asset.AbsolutePath.Substring( 0, asset.AbsolutePath.Length - targetPath.Length );
-			var pathWithoutExtension = targetPath.Replace( ".png", "" );
+				MainAssetBrowser.Instance?.UpdateAssetList();
+				MainAssetBrowser.Instance?.FocusOnAsset( asset );
+				Utility.InspectorObject = asset;
+			}
 
-			var materialResource = $"{pathWithoutExtension}_sprite.vmat";
-			var spriteResource = $"{pathWithoutExtension}.sprite";
-			var imageResource = $"{pathWithoutExtension}_sprite.png";
-
-			var png = Png.Open( asset.AbsolutePath );
-			png.ToPowerOf2( basePath + imageResource );
-
-			var template = (new SpriteTemplate()).GetContent();
-			template = template.Replace( "__texture_translucency__", imageResource );
-			template = template.Replace( "__texture_color__", imageResource );
-
-
-			System.IO.File.WriteAllText( basePath + materialResource, template );
-
-			var newAsset = AssetSystem.RegisterFile( basePath + materialResource );
-			MainAssetBrowser.Instance?.UpdateAssetList();
-
-
-
-			var sprite = new SpriteSheetResource();
-
-			var file = sprite.ToKV3File();
-
-
-			System.IO.File.WriteAllText( basePath + spriteResource, file.ToString() );
-			var spriteAsset = AssetSystem.RegisterFile( basePath + spriteResource );
-			MainAssetBrowser.Instance?.UpdateAssetList();
-			MainAssetBrowser.Instance?.FocusOnAsset( spriteAsset );
-			Utility.InspectorObject = spriteAsset;
-
-			spriteAsset.Compile( true );
+		}
+		public static void BuildSprite( Asset asset )
+		{
+			var sprite = asset.LoadResource<SpriteSheetResource>();
+			BuildSprite( sprite, asset );			
 		}
 
 
