@@ -42,8 +42,14 @@ namespace DeggTools
 					if ( imageAsset != null )
 					{
 						var size = GetPngSize( imageAsset.AbsolutePath );
-						sprite.Width = ( (int)size.y );
-						sprite.Height = ( (int)size.x );
+						if ( sprite.Width == 0 )
+						{
+							sprite.Width = ((int)size.y);
+						}
+						if ( sprite.Height == 0 )
+						{
+							sprite.Height = ((int)size.x);
+						}
 					}
 				}
 				newSprites.Add( sprite );
